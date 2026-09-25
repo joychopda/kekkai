@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 392" width="100%" role="img"
+     aria-label="KekkAI, written with the kanji for kekkai, a warding barrier: a pre-execution guardrail for AI agent tool calls. A terminal shows
+     'kekkai check --tool Bash --arg rm -rf ~/.ssh' returning BLOCK at critical severity,
+     citing the deterministic mass_delete rule, with the tool never executed.">
+  <title>KekkAI (結界) — pre-execution guardrail for AI agent tool calls</title>
+  <desc>A terminal shows `kekkai check --tool Bash --arg 'rm -rf ~/.ssh'` returning BLOCK at
+  critical severity, citing the deterministic mass_delete rule, with exit 1 and the tool never
+  executed.</desc>
+  <defs>
+    <style>
+      .ink   { fill: #f2f1ee; }
+      .muted { fill: #8e8e8a; }
+      .dim   { fill: #6d6d69; }
+      .block { fill: #ef7a66; }
+      .ok    { fill: #63c795; }
+      .warn  { fill: #e0ad51; }
+      .mono  { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .sans  { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+    </style>
+    <clipPath id="card"><rect x="640" y="40" width="504" height="312" rx="10"/></clipPath>
+  </defs>
+
+  <rect width="1200" height="392" rx="14" fill="#161719"/>
+
+  <!-- The motif: a gate. The call arrives from the left and stops at the line. -->
+  <g opacity="0.5">
+    <path d="M56 300 H196" stroke="#4a4b4f" stroke-width="2" stroke-dasharray="7 7"/>
+    <path d="M196 300 l-9 -6 v12 z" fill="#4a4b4f"/>
+    <path d="M214 258 V342" stroke="#ef7a66" stroke-width="3" stroke-linecap="round"/>
+  </g>
+
+  <text class="sans muted" x="56" y="78" font-size="20" letter-spacing="3.4">PRE-EXECUTION GUARDRAIL</text>
+  <text class="sans ink" x="54" y="158" font-size="72" font-weight="640" letter-spacing="-1.6">KekkAI</text>
+  <text class="sans muted" x="296" y="156" font-size="42">結界</text>
+
+  <text class="sans ink" x="56" y="208" font-size="25">Stops a dangerous agent tool call in the</text>
+  <text class="sans ink" x="56" y="241" font-size="25">window before the runtime executes it.</text>
+
+  <g class="mono" font-size="20">
+    <rect x="56" y="268" width="290" height="32" rx="6" fill="#222327"/>
+    <text class="muted" x="70" y="290">is_malicious_payload</text>
+    <rect x="358" y="268" width="88" height="32" rx="6" fill="#222327"/>
+    <text class="muted" x="372" y="290">Choice</text>
+    <rect x="458" y="268" width="80" height="32" rx="6" fill="#222327"/>
+    <text class="muted" x="472" y="290">Score</text>
+  </g>
+  <text class="sans dim" x="56" y="336" font-size="19">Deterministic rules the classifier cannot overrule.</text>
+
+  <!-- Right: real output from `kekkai check`, not a mock. -->
+  <g clip-path="url(#card)">
+    <rect x="640" y="40" width="504" height="312" fill="#0e0f11"/>
+    <rect x="640" y="40" width="504" height="34" fill="#1b1c1f"/>
+  </g>
+  <rect x="640" y="40" width="504" height="312" rx="10" fill="none" stroke="#2c2d31"/>
+  <circle cx="662" cy="57" r="5" fill="#3d3e42"/>
+  <circle cx="680" cy="57" r="5" fill="#3d3e42"/>
+  <circle cx="698" cy="57" r="5" fill="#3d3e42"/>
+  <text class="mono dim" x="722" y="62" font-size="16">kekkai</text>
+
+  <g class="mono" font-size="20">
+    <text class="dim"   x="662" y="112">$</text>
+    <text class="ink"   x="684" y="112">kekkai check --tool Bash \</text>
+    <text class="ink"   x="708" y="140">--arg 'rm -rf ~/.ssh'</text>
+
+    <text class="block" x="662" y="190" font-weight="700">BLOCK</text>
+    <text class="muted" x="738" y="190">score=critical</text>
+
+    <text class="muted" x="662" y="222">choice=privileged_system_call</text>
+
+    <text class="block" x="662" y="262">mass_delete</text>
+    <text class="muted" x="800" y="262">[critical]</text>
+    <text class="dim"   x="662" y="288">recursive delete targeting '~/.ssh',</text>
+    <text class="dim"   x="662" y="312">outside the working tree</text>
+  </g>
+  <text class="mono ok" x="662" y="342" font-size="19">exit 1 · tool never executed · 0.1ms</text>
+</svg>

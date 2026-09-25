@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KekkAI — tool call telemetry</title>
+<meta name="description" content="Local telemetry for the KekkAI pre-execution guardrail: tool calls screened, blocked decisions with the rule that fired, and audit-chain integrity.">
+<!-- Inline SVG favicon: the page must work offline and from a bare file server, so it ships
+     no external asset requests at all. -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' rx='3' fill='%23a8321f'/><path d='M8 3l4 2v3.5c0 2.3-1.7 4-4 4.5-2.3-.5-4-2.2-4-4.5V5z' fill='%23fff'/></svg>">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>
+  <h1>KekkAI</h1>
+  <p class="sub">Pre-execution guardrail &middot; <span id="logdir"></span></p>
+  <p class="sub" id="updated">loading&hellip;</p>
+</header>
+
+<main>
+<section class="tiles" id="tiles" aria-label="Summary statistics"></section>
+
+<section class="panel">
+  <h2>Risk distribution</h2>
+  <div id="histogram" class="histogram" role="img" aria-label="Count of screened tool calls by risk score"></div>
+</section>
+
+<section class="panel">
+  <h2>Recent decisions</h2>
+  <div class="tablewrap">
+    <table id="events">
+      <thead>
+        <tr>
+          <th scope="col">time</th><th scope="col">decision</th><th scope="col">score</th><th scope="col">tool</th>
+          <th scope="col">category</th><th scope="col">p</th><th scope="col">latency</th><th scope="col">reason</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <p class="empty" id="empty" hidden>No decisions recorded yet. Run <code>kekkai check</code> or point an agent at the middleware.</p>
+</section>
+
+</main>
+
+<footer>
+  <p>Read-only view of the audit log. This page never writes to it.</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

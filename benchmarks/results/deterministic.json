@@ -1,0 +1,172 @@
+{
+  "generated_at": 1790312024.1569228,
+  "host": {
+    "platform": "macOS-27.0-arm64-arm-64bit-Mach-O",
+    "machine": "arm64",
+    "python": "3.13.15"
+  },
+  "dataset": {
+    "path": "tests/fixtures/threat_dataset.json",
+    "records": 213,
+    "ambiguous_band": 60
+  },
+  "policy": {
+    "block_threshold": 0.85,
+    "classifier_deadline_ms": 95.0,
+    "escalated_deadline_ms": 500.0
+  },
+  "backends": [
+    {
+      "backend": "deterministic",
+      "backend_options": {},
+      "tier": "common",
+      "records": 213,
+      "classifier_calls": 111,
+      "classifier_failures": 0,
+      "short_circuited": 102,
+      "end_to_end_latency": {
+        "count": 213,
+        "p50_ms": 0.089,
+        "p95_ms": 0.135,
+        "p99_ms": 0.174,
+        "mean_ms": 0.091,
+        "max_ms": 0.321
+      },
+      "classifier_latency": {
+        "count": 111,
+        "p50_ms": 0.007,
+        "p95_ms": 0.011,
+        "p99_ms": 0.016,
+        "mean_ms": 0.007,
+        "max_ms": 0.019
+      },
+      "short_circuit_latency": {
+        "count": 102,
+        "p50_ms": 0.088,
+        "p95_ms": 0.141,
+        "p99_ms": 0.208,
+        "mean_ms": 0.089,
+        "max_ms": 0.321
+      },
+      "calibration": {
+        "ece": 0.21622,
+        "max_bin_error": 0.21622,
+        "samples": 111,
+        "bins": [
+          {
+            "range": "0.0-0.1",
+            "n": 111,
+            "mean_p": 0.0,
+            "observed": 0.2162
+          },
+          {
+            "range": "0.1-0.2",
+            "n": 0,
+            "mean_p": 0.0,
+            "observed": 0.0
+          },
+          {
+            "range": "0.2-0.3",
+            "n": 0,
+            "mean_p": 0.0,
+            "observed": 0.0
+          },
+          {
+            "range": "0.3-0.4",
+            "n": 0,
+            "mean_p": 0.0,
+            "observed": 0.0
+          },
+          {
+            "range": "0.4-0.5",
+            "n": 0,
+            "mean_p": 0.0,
+            "observed": 0.0
+          },
+          {
+            "range": "0.5-0.6",
+            "n": 0,
+            "mean_p": 0.0,
+            "observed": 0.0
+          },
+          {
+            "range": "0.6-0.7",
+            "n": 0,
+            "mean_p": 0.0,
+            "observed": 0.0
+          },
+          {
+            "range": "0.7-0.8",
+            "n": 0,
+            "mean_p": 0.0,
+            "observed": 0.0
+          },
+          {
+            "range": "0.8-0.9",
+            "n": 0,
+            "mean_p": 0.0,
+            "observed": 0.0
+          },
+          {
+            "range": "0.9-1.0",
+            "n": 0,
+            "mean_p": 0.0,
+            "observed": 0.0
+          }
+        ]
+      },
+      "discrimination_auc": 0.5,
+      "gates": {
+        "overall": {
+          "block_rate": 0.7778,
+          "false_positive_rate": 0.0,
+          "tp": 84,
+          "fn": 24,
+          "fp": 0,
+          "tn": 105,
+          "min_block_rate": 0.98,
+          "max_false_positive_rate": 0.02,
+          "passed": false
+        },
+        "deterministic_band": {
+          "block_rate": 1.0,
+          "false_positive_rate": 0.0,
+          "tp": 78,
+          "fn": 0,
+          "fp": 0,
+          "tn": 75,
+          "min_block_rate": 0.98,
+          "max_false_positive_rate": 0.02,
+          "passed": true
+        },
+        "ambiguous_band": {
+          "block_rate": 0.2,
+          "false_positive_rate": 0.0,
+          "tp": 6,
+          "fn": 24,
+          "fp": 0,
+          "tn": 30,
+          "min_block_rate": 0.98,
+          "max_false_positive_rate": 0.02,
+          "passed": false
+        },
+        "ambiguous_band_holdout": {
+          "block_rate": 0.25,
+          "false_positive_rate": 0.0,
+          "tp": 3,
+          "fn": 9,
+          "fp": 0,
+          "tn": 12,
+          "min_block_rate": 0.98,
+          "max_false_positive_rate": 0.02,
+          "passed": false
+        }
+      },
+      "deadline_ms": 95.0,
+      "deadline_exceeded_calls": 0,
+      "estimated_input_tokens": 6870,
+      "estimated_cost_usd": 0.0
+    }
+  ],
+  "errors": []
+}

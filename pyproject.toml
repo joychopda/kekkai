@@ -1,0 +1,69 @@
+[project]
+name = "kekkai"
+version = "0.1.0"
+description = "Real-time pre-execution guardrail that blocks dangerous AI agent tool calls before they run"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+# The core decision engine is pure standard library. That is not frugality, it is the
+# architecture: domain/ and application/ must be exercisable with no classifier backend and
+# no agent framework installed. Every integration is an extra.
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.6",
+    "mypy>=1.11",
+]
+laya = ["laya>=0.3.20"]
+jev = ["typesafe-sdk>=0.7.1", "httpx>=0.27"]
+langchain = ["langchain>=1.4"]
+
+[project.scripts]
+kekkai = "kekkai.cli:main"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+include = ["kekkai*"]
+
+# The dashboard is served straight from the package; no build step, so the assets ship as-is.
+[tool.setuptools.package-data]
+kekkai = ["dashboard/*.html", "dashboard/*.css", "dashboard/*.js"]
+
+[tool.ruff]
+line-length = 115
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+# 3.12, not the 3.11 floor: numpy arrives transitively with the `laya` extra and its stubs
+# use syntax mypy rejects when targeting 3.11, which halts checking entirely. The 3.11 floor
+# is still enforced where it can be -- ruff targets py311, and CI runs the suite on 3.11.
+python_version = "3.12"
+files = ["kekkai"]
+ignore_missing_imports = true
+disallow_untyped_defs = false
+warn_unused_ignores = true
+warn_redundant_casts = true
+
+# numpy arrives transitively with the `laya` extra, and its stubs use syntax newer than the
+# 3.11 floor this project checks against. KekkAI imports numpy nowhere, so skipping its
+# stubs costs no coverage; lowering python_version to silence it would weaken the real check.
+[[tool.mypy.overrides]]
+module = ["laya", "laya.*", "torch.*", "transformers.*", "numpy.*"]
+follow_imports = "skip"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"

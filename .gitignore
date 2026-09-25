@@ -1,0 +1,18 @@
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+.DS_Store
+build/
+dist/
+
+# Audit segments written by a local run. The chain is per-machine and per-process,
+# so it is never shared -- but benchmarks/results/ IS committed on purpose: the
+# README points readers at ledger.jsonl as the evidence behind every published
+# number, and a benchmark section citing a file nobody can see is exactly the kind
+# of unbacked claim the rest of this project avoids.
+segment-*.jsonl
+segments.jsonl

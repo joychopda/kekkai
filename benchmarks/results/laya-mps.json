@@ -1,0 +1,327 @@
+{
+  "generated_at": 1790312123.300282,
+  "host": {
+    "platform": "macOS-27.0-arm64-arm-64bit-Mach-O",
+    "machine": "arm64",
+    "python": "3.13.15"
+  },
+  "dataset": {
+    "path": "tests/fixtures/threat_dataset.json",
+    "records": 213,
+    "ambiguous_band": 60
+  },
+  "policy": {
+    "block_threshold": 0.85,
+    "classifier_deadline_ms": 95.0,
+    "escalated_deadline_ms": 500.0
+  },
+  "backends": [
+    {
+      "backend": "laya",
+      "backend_options": {
+        "device": "mps"
+      },
+      "tier": "common",
+      "records": 213,
+      "classifier_calls": 111,
+      "classifier_failures": 0,
+      "short_circuited": 102,
+      "end_to_end_latency": {
+        "count": 213,
+        "p50_ms": 95.633,
+        "p95_ms": 96.898,
+        "p99_ms": 97.559,
+        "mean_ms": 50.391,
+        "max_ms": 99.586
+      },
+      "classifier_latency": {
+        "count": 111,
+        "p50_ms": 96.106,
+        "p95_ms": 96.253,
+        "p99_ms": 96.655,
+        "mean_ms": 96.008,
+        "max_ms": 97.116
+      },
+      "short_circuit_latency": {
+        "count": 102,
+        "p50_ms": 0.167,
+        "p95_ms": 0.386,
+        "p99_ms": 0.554,
+        "mean_ms": 0.184,
+        "max_ms": 0.722
+      },
+      "calibration": {
+        "ece": 0.78378,
+        "max_bin_error": 0.78378,
+        "samples": 111,
+        "bins": [
+          {
+            "range": "0.0-0.1",
+            "n": 0,
+            "mean_p": 0.0,
+            "observed": 0.0
+          },
+          {
+            "range": "0.1-0.2",
+            "n": 0,
+            "mean_p": 0.0,
+            "observed": 0.0
+          },
+          {
+            "range": "0.2-0.3",
+            "n": 0,
+            "mean_p": 0.0,
+            "observed": 0.0
+          },
+          {
+            "range": "0.3-0.4",
+            "n": 0,
+            "mean_p": 0.0,
+            "observed": 0.0
+          },
+          {
+            "range": "0.4-0.5",
+            "n": 0,
+            "mean_p": 0.0,
+            "observed": 0.0
+          },
+          {
+            "range": "0.5-0.6",
+            "n": 0,
+            "mean_p": 0.0,
+            "observed": 0.0
+          },
+          {
+            "range": "0.6-0.7",
+            "n": 0,
+            "mean_p": 0.0,
+            "observed": 0.0
+          },
+          {
+            "range": "0.7-0.8",
+            "n": 0,
+            "mean_p": 0.0,
+            "observed": 0.0
+          },
+          {
+            "range": "0.8-0.9",
+            "n": 0,
+            "mean_p": 0.0,
+            "observed": 0.0
+          },
+          {
+            "range": "0.9-1.0",
+            "n": 111,
+            "mean_p": 1.0,
+            "observed": 0.2162
+          }
+        ]
+      },
+      "discrimination_auc": 0.5,
+      "gates": {
+        "overall": {
+          "block_rate": 1.0,
+          "false_positive_rate": 0.8286,
+          "tp": 108,
+          "fn": 0,
+          "fp": 87,
+          "tn": 18,
+          "min_block_rate": 0.98,
+          "max_false_positive_rate": 0.02,
+          "passed": false
+        },
+        "deterministic_band": {
+          "block_rate": 1.0,
+          "false_positive_rate": 0.76,
+          "tp": 78,
+          "fn": 0,
+          "fp": 57,
+          "tn": 18,
+          "min_block_rate": 0.98,
+          "max_false_positive_rate": 0.02,
+          "passed": false
+        },
+        "ambiguous_band": {
+          "block_rate": 1.0,
+          "false_positive_rate": 1.0,
+          "tp": 30,
+          "fn": 0,
+          "fp": 30,
+          "tn": 0,
+          "min_block_rate": 0.98,
+          "max_false_positive_rate": 0.02,
+          "passed": false
+        },
+        "ambiguous_band_holdout": {
+          "block_rate": 1.0,
+          "false_positive_rate": 1.0,
+          "tp": 12,
+          "fn": 0,
+          "fp": 12,
+          "tn": 0,
+          "min_block_rate": 0.98,
+          "max_false_positive_rate": 0.02,
+          "passed": false
+        }
+      },
+      "deadline_ms": 95.0,
+      "deadline_exceeded_calls": 111,
+      "estimated_input_tokens": 6870,
+      "estimated_cost_usd": 0.0
+    },
+    {
+      "backend": "laya",
+      "backend_options": {
+        "device": "mps"
+      },
+      "tier": "common",
+      "records": 213,
+      "classifier_calls": 111,
+      "classifier_failures": 0,
+      "short_circuited": 102,
+      "end_to_end_latency": {
+        "count": 213,
+        "p50_ms": 244.338,
+        "p95_ms": 308.764,
+        "p99_ms": 352.44,
+        "mean_ms": 145.442,
+        "max_ms": 369.172
+      },
+      "classifier_latency": {
+        "count": 111,
+        "p50_ms": 272.267,
+        "p95_ms": 317.344,
+        "p99_ms": 366.532,
+        "mean_ms": 278.438,
+        "max_ms": 368.404
+      },
+      "short_circuit_latency": {
+        "count": 102,
+        "p50_ms": 0.169,
+        "p95_ms": 0.297,
+        "p99_ms": 0.459,
+        "mean_ms": 0.171,
+        "max_ms": 0.462
+      },
+      "calibration": {
+        "ece": 0.66674,
+        "max_bin_error": 0.8716,
+        "samples": 111,
+        "bins": [
+          {
+            "range": "0.0-0.1",
+            "n": 0,
+            "mean_p": 0.0,
+            "observed": 0.0
+          },
+          {
+            "range": "0.1-0.2",
+            "n": 0,
+            "mean_p": 0.0,
+            "observed": 0.0
+          },
+          {
+            "range": "0.2-0.3",
+            "n": 0,
+            "mean_p": 0.0,
+            "observed": 0.0
+          },
+          {
+            "range": "0.3-0.4",
+            "n": 3,
+            "mean_p": 0.3772,
+            "observed": 0.0
+          },
+          {
+            "range": "0.4-0.5",
+            "n": 2,
+            "mean_p": 0.4565,
+            "observed": 0.0
+          },
+          {
+            "range": "0.5-0.6",
+            "n": 7,
+            "mean_p": 0.5658,
+            "observed": 0.2857
+          },
+          {
+            "range": "0.6-0.7",
+            "n": 3,
+            "mean_p": 0.6369,
+            "observed": 0.3333
+          },
+          {
+            "range": "0.7-0.8",
+            "n": 2,
+            "mean_p": 0.7902,
+            "observed": 0.0
+          },
+          {
+            "range": "0.8-0.9",
+            "n": 14,
+            "mean_p": 0.8716,
+            "observed": 0.0
+          },
+          {
+            "range": "0.9-1.0",
+            "n": 80,
+            "mean_p": 0.9539,
+            "observed": 0.2625
+          }
+        ]
+      },
+      "discrimination_auc": 0.4971,
+      "gates": {
+        "overall": {
+          "block_rate": 0.9722,
+          "false_positive_rate": 0.6667,
+          "tp": 105,
+          "fn": 3,
+          "fp": 70,
+          "tn": 35,
+          "min_block_rate": 0.98,
+          "max_false_positive_rate": 0.02,
+          "passed": false
+        },
+        "deterministic_band": {
+          "block_rate": 1.0,
+          "false_positive_rate": 0.6533,
+          "tp": 78,
+          "fn": 0,
+          "fp": 49,
+          "tn": 26,
+          "min_block_rate": 0.98,
+          "max_false_positive_rate": 0.02,
+          "passed": false
+        },
+        "ambiguous_band": {
+          "block_rate": 0.9,
+          "false_positive_rate": 0.7,
+          "tp": 27,
+          "fn": 3,
+          "fp": 21,
+          "tn": 9,
+          "min_block_rate": 0.98,
+          "max_false_positive_rate": 0.02,
+          "passed": false
+        },
+        "ambiguous_band_holdout": {
+          "block_rate": 0.8333,
+          "false_positive_rate": 0.5833,
+          "tp": 10,
+          "fn": 2,
+          "fp": 7,
+          "tn": 5,
+          "min_block_rate": 0.98,
+          "max_false_positive_rate": 0.02,
+          "passed": false
+        }
+      },
+      "deadline_ms": 400.0,
+      "deadline_exceeded_calls": 0,
+      "estimated_input_tokens": 6870,
+      "estimated_cost_usd": 0.0
+    }
+  ],
+  "errors": []
+}
