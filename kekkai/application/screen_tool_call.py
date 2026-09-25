@@ -65,6 +65,7 @@ class ScreenToolCall(ScreeningPort):
         self.workspace_root = workspace_root
         self.egress_allowlist = egress_allowlist
         self._clock = clock
+        self._shadow_tasks: set[asyncio.Task] = set()
 
     async def warmup(self) -> None:
         """Pre-warm the backend so lazy initialization is not charged to the first tool call."""
@@ -115,7 +116,6 @@ class ScreenToolCall(ScreeningPort):
                 vendor_confidence=classification.vendor_confidence if classification else None,
                 tier=self.classifier.tier,
                 failed_closed=outcome.failed_closed,
-                prefilter_overrode_classifier=outcome.prefilter_overrode_classifier,
                 fenced_fields=envelope.fenced_fields(),
                 prompt_truncated=prompt_truncated,
                 session_id=session.session_id,
@@ -124,7 +124,90 @@ class ScreenToolCall(ScreeningPort):
             self.cache.put(key, result)
 
         self._audit(result, envelope, session)
+        if binding and result.blocked:
+            self._schedule_shadow(envelope, session, result)
         return result
+
+    # -- shadow checks -------------------------------------------------------
+
+    def _schedule_shadow(self, envelope: ToolCallEnvelope, session: SessionSnapshot, result) -> None:
+        """Queue an out-of-band classification of a call a rule already blocked.
+
+        Deliberately fire-and-forget: the decision has been made and returned, so this must
+        never delay it. Without a running loop there is nothing to schedule and the signal is
+        simply unavailable -- which is better than blocking a synchronous caller to get it.
+        """
+        if not self.policy.shadow_classify_blocks or self.classifier.abstains:
+            return
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return
+        task = loop.create_task(self._shadow_check(envelope, session, result))
+        self._shadow_tasks.add(task)
+        task.add_done_callback(self._shadow_tasks.discard)
+
+    async def _shadow_check(self, envelope: ToolCallEnvelope, session: SessionSnapshot, result) -> None:
+        """Record the case where the classifier would not have blocked what a rule did.
+
+        Agreement is not logged. A guardrail that emitted an event every time its two layers
+        concurred would bury the one case worth alerting on, and it is the disagreement that
+        signals a classifier being talked out of a correct verdict.
+        """
+        prompt, _truncated = envelope.classifier_prompt()
+        try:
+            classification = await asyncio.wait_for(
+                self._shadow_classify(prompt),
+                timeout=self.policy.shadow_budget_ms / 1000.0,
+            )
+        except Exception:
+            # A shadow that cannot answer changes nothing: the block already stands, and the
+            # absence of a disagreement record is not evidence of agreement.
+            return
+        if classification.malice_probability >= self.policy.block_threshold:
+            return
+
+        worst = max(result.rule_verdicts, key=lambda v: int(v.score)) if result.rule_verdicts else None
+        self.sink.emit(
+            AuditRecord(
+                seq=0,
+                ts=time.time(),
+                segment_id="",
+                session_id=session.session_id,
+                event=AuditEvent.PREFILTER_OVERRODE,
+                tool_name=envelope.tool_name,
+                decision=result.decision.value,
+                score=int(result.score),
+                choice=classification.choice.value,
+                malice_probability=classification.malice_probability,
+                backend_used=self.classifier.name,
+                execution_latency_ms=0.0,
+                reason=(
+                    f"rule {worst.rule!r} blocked; {self.classifier.name} rated it "
+                    f"{classification.malice_probability:.3f}, below the "
+                    f"{self.policy.block_threshold:.2f} threshold"
+                    if worst
+                    else "deterministic block the classifier would not have made"
+                ),
+                envelope_digest=envelope.digest(),
+                extra={"shadow": True, "rule_verdicts": [v.to_dict() for v in result.rule_verdicts]},
+            )
+        )
+
+    async def _shadow_classify(self, prompt: str) -> Classification:
+        """Load the model if needed, then classify. Both inside the shadow's own budget."""
+        await self.classifier.warmup()
+        return await self.classifier.classify(prompt, deadline_ms=self.policy.shadow_budget_ms)
+
+    async def drain_shadows(self, timeout: float | None = None) -> None:
+        """Await any in-flight shadow checks.
+
+        Needed by short-lived callers -- the CLI, tests -- that would otherwise exit before
+        the signal they asked for has been written.
+        """
+        pending = set(self._shadow_tasks)
+        if pending:
+            await asyncio.wait(pending, timeout=timeout)
 
     async def _classify(self, envelope: ToolCallEnvelope) -> Classification | None:
         """Call the backend under a hard deadline.
@@ -175,8 +258,6 @@ class ScreenToolCall(ScreeningPort):
         """
         if result.failed_closed:
             event = AuditEvent.FAILED_CLOSED
-        elif result.prefilter_overrode_classifier:
-            event = AuditEvent.PREFILTER_OVERRODE
         elif result.decision is Decision.BLOCK:
             event = AuditEvent.BLOCKED
         else:

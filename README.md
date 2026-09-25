@@ -139,6 +139,19 @@ flowchart LR
     style TG fill:#f6f5f3,stroke:#d8d7d3
 ```
 
+After a deterministic block the classifier is asked anyway — off the hot
+path, with the decision already fixed — purely to record whether it would
+have agreed. Inference is paid only on blocks, which are rare, and never
+before a decision is returned. Only disagreement is logged: an event on
+every concurrence would bury the one case worth alerting on.
+
+That check earns its keep immediately. Asked about `Read ../../etc/shadow`,
+which `path_escape` blocks outright, Laya returns **0.731** — below the
+0.85 threshold, meaning it would have allowed reading the shadow password
+file. The rule blocked it, and `PrefilterOverrodeClassifier` records the
+disagreement. A rising rate of that event is what a classifier being argued
+out of correct verdicts looks like from the outside.
+
 Two properties of that flow do the work. The dotted edge is fail-closed:
 any timeout, error, rate limit, or unparseable response resolves to BLOCK
 plus a critical telemetry event, never to a permissive default. And the two

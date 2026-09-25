@@ -76,6 +76,15 @@ before an agent session, not per call.
 blocking something the classifier rated safe. A rising rate is the in-production symptom of a
 classifier-injection campaign.
 
+This is measured by a **shadow check**: a binding rule still short-circuits, so the decision
+costs no inference, and the classifier is asked afterwards, off the hot path, with the verdict
+already fixed. Its budget (`shadow_budget_ms`, default 30 s) deliberately covers a cold model
+load, because in a one-shot process the shadow is often the first thing to need the model at
+all — a tight budget there protects nobody and silently loses the signal, which is how an
+earlier version of this was found to be emitting nothing. Only disagreement is recorded;
+logging every concurrence would bury the case worth alerting on. Backends that abstain (the
+rule-only default) are never shadow-checked, since there is no opinion to disagree with.
+
 **Alert on symptoms, not causes:** rising fail-closed rate (agents blocked), rising
 prefilter-override rate (possible injection), breaker *staying* open. A breaker opening once is
 expected output, not an incident.

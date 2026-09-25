@@ -246,7 +246,6 @@ class GuardrailResult:
     vendor_confidence: float | None = None
     tier: Tier = Tier.COMMON
     failed_closed: bool = False
-    prefilter_overrode_classifier: bool = False
     fenced_fields: tuple[str, ...] = ()
     prompt_truncated: bool = False
     cache_hit: bool = False
@@ -286,7 +285,6 @@ class GuardrailResult:
             "rule_verdicts": [v.to_dict() for v in self.rule_verdicts],
             "tier": self.tier.value,
             "failed_closed": self.failed_closed,
-            "prefilter_overrode_classifier": self.prefilter_overrode_classifier,
             "fenced_fields": list(self.fenced_fields),
             "prompt_truncated": self.prompt_truncated,
             "cache_hit": self.cache_hit,

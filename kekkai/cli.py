@@ -89,7 +89,15 @@ def cmd_check(args: argparse.Namespace) -> int:
 
     screener = build_screener(config)
     envelope = build_envelope(args.tool, parsed_args, session_id="cli")
-    result = asyncio.run(screener.screen(envelope, SessionSnapshot(session_id="cli")))
+
+    async def run() -> GuardrailResult:
+        screened = await screener.screen(envelope, SessionSnapshot(session_id="cli"))
+        # A shadow check is scheduled off the hot path, so a one-shot process has to wait
+        # for it or the disagreement it was asked to record never reaches the log.
+        await screener.drain_shadows(timeout=config.policy.shadow_budget_ms / 1000.0)
+        return screened
+
+    result = asyncio.run(run())
     screener.sink.flush()
 
     print(json.dumps(result.to_dict(), indent=2) if args.json else render(result))

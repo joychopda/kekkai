@@ -33,6 +33,7 @@ from .registry import register_backend
 class DeterministicClassifier(ClassifierPort):
     name = "deterministic"
     tier = Tier.COMMON
+    abstains = True
 
     async def classify(self, prompt: str, *, deadline_ms: float) -> Classification:
         try:

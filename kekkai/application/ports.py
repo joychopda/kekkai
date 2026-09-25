@@ -27,6 +27,10 @@ class ClassifierPort(ABC):
     #: "Jev is tier-2 only" in the type rather than in a comment (docs/RELIABILITY.md).
     tier: Tier = Tier.COMMON
 
+    #: True when this backend returns a placeholder rather than a judgement. Nothing is
+    #: learned by comparing a rule's verdict against an abstention, so shadow checks skip it.
+    abstains: bool = False
+
     @abstractmethod
     async def classify(self, prompt: str, *, deadline_ms: float) -> Classification:
         """Assess a rendered classifier prompt.

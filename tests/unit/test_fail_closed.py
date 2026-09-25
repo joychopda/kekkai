@@ -208,26 +208,79 @@ async def test_a_fail_closed_block_still_reports_full_malice_probability():
     assert result.malice_probability == 1.0
 
 
-async def test_the_prefilter_override_signal_is_currently_unreachable():
-    """Pins a known gap rather than a desired behaviour.
+async def test_a_deterministic_block_is_shadow_checked_and_disagreement_is_logged():
+    """The injection signal, made real.
 
-    `PrefilterOverrodeClassifier` is documented as the production symptom of a classifier
-    being injected: the deterministic layer blocking something a model rated safe. But a
-    binding rule short-circuits *before* the classifier is consulted, so `classification` is
-    always None on exactly the path where the override would be computed, and the flag can
-    never be True.
-
-    The short-circuit is deliberate and worth keeping -- it is the latency and cost decision.
-    Making the signal real means classifying blocked calls out of band, after the decision is
-    fixed, which is a design change and not a bug fix. This test fails the day that lands,
-    which is the point: it is the reminder, and it stops the claim being quietly forgotten.
+    A binding rule still short-circuits, so the decision costs no inference. Afterwards the
+    classifier is asked anyway, out of band, and its disagreement is written to the log. That
+    disagreement is what a classifier being argued out of a correct verdict looks like from
+    the outside.
     """
     classifier = StaticClassifier(malice_probability=0.01, choice=Choice.SAFE_READ_ONLY)
-    result, _ = await screen(classifier, tool=("Bash", {"command": "rm -rf ~/.ssh"}))
+    use_case, sink = screener(classifier)
+    envelope = build_envelope("Bash", {"command": "rm -rf ~/.ssh"}, session_id="s1")
+
+    result = await use_case.screen(envelope, SessionSnapshot(session_id="s1"))
+    assert result.decision is Decision.BLOCK
+    assert classifier.calls == 0, "the decision itself must not pay for inference"
+
+    await use_case.drain_shadows(timeout=2.0)
+    assert classifier.calls == 1, "the shadow check should have run after the decision"
+
+    overrides = [r for r in sink.records if r.event is AuditEvent.PREFILTER_OVERRODE]
+    assert len(overrides) == 1
+    assert overrides[0].extra["shadow"] is True
+    assert "mass_delete" in overrides[0].reason
+    assert overrides[0].malice_probability == 0.01
+
+
+async def test_agreement_between_the_layers_is_not_logged():
+    """Only disagreement is an event. Logging every concurrence would bury the one case
+    worth alerting on."""
+    classifier = StaticClassifier(malice_probability=0.99, choice=Choice.PRIVILEGED_SYSTEM_CALL)
+    use_case, sink = screener(classifier)
+    envelope = build_envelope("Bash", {"command": "rm -rf ~/.ssh"}, session_id="s1")
+
+    await use_case.screen(envelope, SessionSnapshot(session_id="s1"))
+    await use_case.drain_shadows(timeout=2.0)
+
+    assert classifier.calls == 1
+    assert not [r for r in sink.records if r.event is AuditEvent.PREFILTER_OVERRODE]
+
+
+async def test_an_abstaining_backend_is_never_shadow_checked():
+    """Nothing is learned by comparing a rule against a backend that holds no opinion."""
+    from kekkai.adapters.classifiers.deterministic import DeterministicClassifier
+
+    use_case, sink = screener(DeterministicClassifier())
+    envelope = build_envelope("Bash", {"command": "rm -rf ~/.ssh"}, session_id="s1")
+
+    await use_case.screen(envelope, SessionSnapshot(session_id="s1"))
+    await use_case.drain_shadows(timeout=2.0)
+    assert not [r for r in sink.records if r.event is AuditEvent.PREFILTER_OVERRODE]
+
+
+async def test_a_failing_shadow_check_never_disturbs_the_decision():
+    """A shadow that cannot answer changes nothing; the block already stands."""
+    classifier = StaticClassifier(fail=True)
+    use_case, sink = screener(classifier)
+    envelope = build_envelope("Bash", {"command": "rm -rf ~/.ssh"}, session_id="s1")
+
+    result = await use_case.screen(envelope, SessionSnapshot(session_id="s1"))
+    await use_case.drain_shadows(timeout=2.0)
 
     assert result.decision is Decision.BLOCK
-    assert classifier.calls == 0, "a binding rule must not pay for inference"
-    assert not result.prefilter_overrode_classifier, (
-        "if this now fires, the override signal became reachable -- update the docs that "
-        "describe it and delete this test"
+    assert not result.failed_closed, "the rule decided; the shadow's failure is not a fail-closed"
+    assert not [r for r in sink.records if r.event is AuditEvent.PREFILTER_OVERRODE]
+
+
+async def test_shadow_checks_can_be_switched_off():
+    policy = ScreeningPolicy(shadow_classify_blocks=False)
+    classifier = StaticClassifier(malice_probability=0.01, choice=Choice.SAFE_READ_ONLY)
+    use_case, _sink = screener(classifier, policy=policy)
+    await use_case.screen(
+        build_envelope("Bash", {"command": "rm -rf ~/.ssh"}, session_id="s1"),
+        SessionSnapshot(session_id="s1"),
     )
+    await use_case.drain_shadows(timeout=2.0)
+    assert classifier.calls == 0

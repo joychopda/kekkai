@@ -40,7 +40,6 @@ def test_critical_rule_cannot_be_downgraded_by_a_confident_safe_verdict():
     outcome = decide(verdicts, _classification(0.001, Choice.SAFE_READ_ONLY), trivially_safe=True, policy=POLICY)
     assert outcome.decision is Decision.BLOCK
     assert outcome.score is Score.CRITICAL
-    assert outcome.prefilter_overrode_classifier, "an override must be flagged; it is the injection signal"
 
 
 def test_low_rule_verdict_alone_does_not_block():

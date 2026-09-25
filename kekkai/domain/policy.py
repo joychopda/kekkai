@@ -40,6 +40,20 @@ class ScreeningPolicy:
     escalate_at_or_above: Score = Score.HIGH
     binding_rule_score: Score = Score.HIGH
 
+    #: After a deterministic rule blocks, ask the classifier anyway -- off the hot path,
+    #: with the decision already fixed -- purely to record when it disagrees. That
+    #: disagreement is the production symptom of a classifier being argued out of a correct
+    #: verdict, and it is unobservable without asking. Inference is paid only on blocks,
+    #: which are rare, and never before a decision is returned.
+    shadow_classify_blocks: bool = True
+
+    #: One budget covering a cold model load as well as the inference. Generous on purpose:
+    #: the shadow runs after the decision is already returned, so spending time here costs the
+    #: agent nothing, and in a one-shot process the shadow is often the first thing to need
+    #: the model at all. A tight budget here does not protect anyone -- it just silently
+    #: loses the signal, which is how this was found.
+    shadow_budget_ms: float = 30_000.0
+
     def __post_init__(self) -> None:
         if not 0.0 < self.block_threshold <= 1.0:
             raise ValueError("block_threshold must be in (0, 1]")
@@ -68,7 +82,6 @@ class PolicyOutcome:
     score: Score
     choice: Choice
     reason: str
-    prefilter_overrode_classifier: bool = False
     failed_closed: bool = False
 
 
@@ -114,13 +127,11 @@ def decide(
 
     if rule_score >= policy.binding_rule_score:
         worst = max(verdicts, key=lambda v: int(v.score))
-        overrode = classification is not None and classification.malice_probability < policy.block_threshold
         return PolicyOutcome(
             decision=Decision.BLOCK,
             score=rule_score,
             choice=classification.choice if classification else Choice.PRIVILEGED_SYSTEM_CALL,
             reason=f"deterministic rule {worst.rule!r}: {worst.message}",
-            prefilter_overrode_classifier=overrode,
         )
 
     if classification is None:
