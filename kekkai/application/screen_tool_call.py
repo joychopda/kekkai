@@ -22,6 +22,21 @@ from .errors import ClassifierUnavailable
 from .ports import AuditSinkPort, ClassifierPort, ScreeningPort
 
 
+def _probability_of(classification: Classification | None, outcome) -> float:
+    """The probability to publish on a result.
+
+    With a classification, its own number -- including when a deterministic rule overrode it,
+    because the gap between a low probability and a BLOCK is exactly the override signal.
+
+    Without one, the decision has to speak for itself: a short-circuited allow is a positive
+    determination of safety, not an unknown, and reporting 1.0 beside ALLOW is a contradiction
+    a reader has to talk themselves out of. Fail-closed blocks keep 1.0.
+    """
+    if classification is not None:
+        return classification.malice_probability
+    return 0.0 if outcome.decision is Decision.ALLOW else 1.0
+
+
 class ScreenToolCall(ScreeningPort):
     """Orchestrates prefilter, classifier, policy, and audit for one tool call.
 
@@ -92,7 +107,7 @@ class ScreenToolCall(ScreeningPort):
                 decision=outcome.decision,
                 score=outcome.score,
                 choice=outcome.choice,
-                malice_probability=classification.malice_probability if classification else 1.0,
+                malice_probability=_probability_of(classification, outcome),
                 backend_used=self.classifier.name,
                 execution_latency_ms=self._elapsed_ms(started),
                 reason=outcome.reason,

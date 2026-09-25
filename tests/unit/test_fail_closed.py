@@ -189,3 +189,45 @@ async def test_a_deterministic_block_is_not_served_from_cache():
 def test_classification_rejects_an_out_of_range_probability():
     with pytest.raises(ValueError, match="malice_probability"):
         Classification(choice=Choice.SAFE_READ_ONLY, malice_probability=-0.1)
+
+
+async def test_a_short_circuited_allow_does_not_report_certainty_of_malice():
+    """`ALLOW ... p(malicious)=1.000` is a contradiction a reader has to talk themselves out of.
+
+    A positively-safe call resolved without a classifier is a determination of safety, not an
+    unknown, so the published probability has to say so.
+    """
+    result, _ = await screen(StaticClassifier(fail=True), tool=("Read", {"command": "src/main.py"}))
+    assert result.decision is Decision.ALLOW
+    assert result.malice_probability == 0.0
+
+
+async def test_a_fail_closed_block_still_reports_full_malice_probability():
+    result, _ = await screen(StaticClassifier(fail=True))
+    assert result.decision is Decision.BLOCK
+    assert result.malice_probability == 1.0
+
+
+async def test_the_prefilter_override_signal_is_currently_unreachable():
+    """Pins a known gap rather than a desired behaviour.
+
+    `PrefilterOverrodeClassifier` is documented as the production symptom of a classifier
+    being injected: the deterministic layer blocking something a model rated safe. But a
+    binding rule short-circuits *before* the classifier is consulted, so `classification` is
+    always None on exactly the path where the override would be computed, and the flag can
+    never be True.
+
+    The short-circuit is deliberate and worth keeping -- it is the latency and cost decision.
+    Making the signal real means classifying blocked calls out of band, after the decision is
+    fixed, which is a design change and not a bug fix. This test fails the day that lands,
+    which is the point: it is the reminder, and it stops the claim being quietly forgotten.
+    """
+    classifier = StaticClassifier(malice_probability=0.01, choice=Choice.SAFE_READ_ONLY)
+    result, _ = await screen(classifier, tool=("Bash", {"command": "rm -rf ~/.ssh"}))
+
+    assert result.decision is Decision.BLOCK
+    assert classifier.calls == 0, "a binding rule must not pay for inference"
+    assert not result.prefilter_overrode_classifier, (
+        "if this now fires, the override signal became reachable -- update the docs that "
+        "describe it and delete this test"
+    )

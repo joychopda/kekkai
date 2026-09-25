@@ -19,9 +19,16 @@ one: `supply-chain-hunter` scans artifacts before deployment, and
 
 ## Quickstart
 
+Needs Python 3.11 or newer. If your `python3` is older, name the version
+explicitly — `python3.11 -m venv .venv` — and if you skip the pip upgrade,
+an older bundled pip will refuse the editable install with a confusing
+message about `setup.py`.
+
 ```bash
 git clone https://github.com/joychopda/kekkai && cd kekkai
-python3 -m venv .venv && .venv/bin/pip install -e ".[dev,langchain]"
+python3 -m venv .venv
+.venv/bin/pip install --upgrade pip
+.venv/bin/pip install -e ".[dev,langchain]"
 
 .venv/bin/kekkai check --tool Bash --arg 'rm -rf ~/.ssh'
 ```
