@@ -3,19 +3,56 @@
 [![CI](https://github.com/joychopda/kekkai/actions/workflows/ci.yml/badge.svg)](https://github.com/joychopda/kekkai/actions/workflows/ci.yml)
 
 **KekkAI** (結界) — in Japanese folklore a *kekkai* is a warding barrier: a
-boundary a dangerous thing cannot cross. That is the whole design. The last
-two letters are not an accident either.
+boundary a dangerous thing cannot cross. That's the whole design brief. The
+last two letters are not an accident either.
 
-An agent given tools will execute whatever the model emits. Indirect prompt
-injection — a poisoned web page, a hostile README, a retrieved document —
-turns that into shell execution, credential reads, and exfiltration, using
-the agent's own permissions. KekkAI occupies the window between the model
-proposing a tool call and the runtime running it, and it answers one
-question: does this call execute, yes or no.
+Give an agent real tools and it will do whatever the model tells it to —
+that's the entire premise of vibe coding, and also the entire threat model.
+Indirect prompt injection — a poisoned web page, a hostile README, a
+retrieved doc — can talk the model into using those tools against you:
+deleting data, reading credentials, exfiltrating whatever it can reach,
+using the agent's own permissions to do it. It's the same failure mode as
+vibe-coding yourself into an `rm -rf` you didn't mean, except this version
+is adversarial, automated, and aimed on purpose.
+
+KekkAI sits in the one window that matters: between the model proposing a
+tool call and the runtime executing it. Deterministic rules go first —
+they can't be argued out of a verdict, because there's no argument to have
+with a regex. A probabilistic classifier handles the ambiguous middle rules
+can't resolve. Anything that times out, errors, or won't parse fails
+closed: no verdict, no execution.
 
 It is the enforcement point between two siblings that deliberately are not
 one: `supply-chain-hunter` scans artifacts before deployment, and
 `agent-action-sentinel` verifies behaviour after execution.
+
+### Where we actually are
+
+Only the deterministic rule layer ships enabled (`DEFAULT_BACKEND =
+"deterministic"`). Two probabilistic backends have been built to the same
+interface and actually measured, not promoted on faith:
+
+- **Laya** — AUC 0.497. Indistinguishable from a coin flip; not a
+  calibration problem, a no-signal problem.
+- **Jev** (TypeSafe, measured for real once we got a live API credential) —
+  AUC 0.813, genuine discrimination, the best of anything tested here — and
+  it still fails the safety gate, because its probability scale is
+  compressed too far below the block threshold to hit the 98%-block/2%-FPR
+  bar on hard near-neighbor cases.
+
+The plan was: ship rules as a floor, then layer on a classifier that clears
+a strict safety bar. Two backends in, that bar hasn't been cleared — not
+because nothing works, but because "shows real discrimination" and "safe
+enough to auto-block on" are different bars, and that gap is the actual
+finding. Rules alone are what's protecting anyone right now. That's not a
+failure state — a guardrail nobody trusts enough to enable protects nobody.
+
+Full numbers in [Benchmarks](#benchmarks). What we're doing about the gap —
+calibrating each backend's own score instead of trusting its raw scale,
+reading Jev's probability alongside its own confidence and risk score
+instead of thresholding one number in isolation, and a real
+"escalate to review" state instead of forcing every ambiguous call into
+allow or block — is in [Roadmap](#roadmap).
 
 ## Quickstart
 
@@ -262,8 +299,8 @@ named incidents (Capital One 2019, SolarWinds Orion, 3CX, the `event-stream`
 npm compromise, among others), **100% ambiguous band by construction** —
 malicious and benign records are written as near-neighbor pairs sharing a
 tool and shape, so intent is the only tell. These numbers are not
-comparable to the 213-record table above; they are a separate run, on a
-separate, harder dataset.
+comparable to the 213-record table above — this is a separate run on a
+different, harder dataset.
 
 | Backend | p50 | p95 | ECE | AUC | Block | FPR | Gate |
 |---|---|---|---|---|---|---|---|
@@ -347,7 +384,7 @@ now regression-tested.
 .venv/bin/ruff check . && .venv/bin/ruff format --check . && .venv/bin/mypy
 ```
 
-159 tests across three tiers. The assertion that matters most is negative:
+170 tests across three tiers. The assertion that matters most is negative:
 integration tests assert the tool function's **side effect never happened**,
 not merely that an error message came back — a test checking only the
 return value would pass even if the tool had already run.
