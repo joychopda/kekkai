@@ -30,6 +30,35 @@ DEFAULT_BACKEND = "deterministic"
 
 DEFAULT_LOG_DIR = Path(os.environ.get("KEKKAI_HOME", Path.home() / ".kekkai")) / "audit"
 
+#: Local secrets file. Loaded into `os.environ` before config is built; never committed
+#: (see `.gitignore`). Existing process env wins over file values.
+DEFAULT_ENV_FILE = Path(".env")
+
+
+def load_dotenv(path: str | os.PathLike[str] | None = None) -> Path | None:
+    """Load KEY=VALUE pairs from a `.env` file into `os.environ`.
+
+    Stdlib only -- no `python-dotenv` dependency -- so the zero-deps core stays intact.
+    Keys already present in the process environment are left alone (shell exports win).
+    Returns the path that was loaded, or `None` if the file is absent.
+    """
+    env_path = Path(path) if path is not None else DEFAULT_ENV_FILE
+    if not env_path.is_file():
+        return None
+    for raw in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        if not key or key in os.environ:
+            continue
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+            value = value[1:-1]
+        os.environ[key] = value
+    return env_path
+
 
 @dataclass(frozen=True)
 class KekkaiConfig:
@@ -43,7 +72,12 @@ class KekkaiConfig:
 
     @classmethod
     def load(cls, path: str | os.PathLike[str] | None = None) -> KekkaiConfig:
-        """Build a config from a TOML file, then let the environment override it."""
+        """Build a config from a TOML file, then let the environment override it.
+
+        A local `.env` (if present) is loaded first so credentials like
+        `TYPESAFE_API_KEY` are available to backends without exporting them by hand.
+        """
+        load_dotenv()
         config = cls(workspace_root=os.getcwd())
         if path:
             config = config._merge_file(Path(path))

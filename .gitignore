@@ -9,6 +9,11 @@ __pycache__/
 build/
 dist/
 
+# Local secrets. Commit `.env.example` only; never the filled-in file.
+.env
+.env.local
+.env.*.local
+
 # Audit segments written by a local run. The chain is per-machine and per-process,
 # so it is never shared -- but benchmarks/results/ IS committed on purpose: the
 # README points readers at ledger.jsonl as the evidence behind every published
@@ -16,3 +21,4 @@ dist/
 # of unbacked claim the rest of this project avoids.
 segment-*.jsonl
 segments.jsonl
+qa-report-2026-09-24.md

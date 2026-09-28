@@ -30,6 +30,7 @@ from kekkai.application.cache import DecisionCache  # noqa: E402
 from kekkai.application.errors import ClassifierUnavailable  # noqa: E402
 from kekkai.application.ports import ClassifierPort  # noqa: E402
 from kekkai.application.screen_tool_call import ScreenToolCall  # noqa: E402
+from kekkai.config import load_dotenv  # noqa: E402
 from kekkai.domain.policy import ScreeningPolicy  # noqa: E402
 from kekkai.domain.prefilter import SessionSnapshot  # noqa: E402
 
@@ -252,6 +253,9 @@ def render(report: dict) -> str:
 
 
 def main(args: argparse.Namespace) -> int:
+    # Bench constructs backends without KekkaiConfig.load(), so pull `.env` here
+    # (TYPESAFE_API_KEY for Jev). Process env still wins over the file.
+    load_dotenv(REPO_ROOT / ".env")
     dataset_path = Path(args.dataset) if getattr(args, "dataset", None) else DATASET
     records = load_records(dataset_path, getattr(args, "limit", 0) or 0)
     policy = ScreeningPolicy.default()

@@ -211,7 +211,6 @@ two apart.
 | **deterministic** (default) | 0.09 ms | **0.14 ms** | 0.216 | — | 20.0% | **0.0%** | — |
 | laya (MPS) @95 ms deadline | 96 ms | 96 ms | 0.784 | — | 100% | 100% | **FAIL** |
 | laya (MPS) @400 ms deadline | 272 ms | 317 ms | 0.667 | **0.497** | 90.0% | 70.0% | **FAIL** |
-| jev | — | — | — | — | — | — | *not measured* |
 
 On the band the rules do cover, the deterministic layer scores **100% block
 rate at 0.0% false positives**.
@@ -251,6 +250,72 @@ Every run appends to `benchmarks/results/ledger.jsonl` with the exact
 command and measurements, and that ledger is committed — the numbers above
 are reproducible from files in this repository, not quoted from a console
 somebody has to take on trust.
+
+### Jev, measured directly
+
+Native Jev (`api.typesafe.ai/v1/systemone`, TypeSafe's hosted System One
+decision API, called with a real credential) was benchmarked directly
+against a second, harder dataset:
+[`tests/fixtures/enterprise_threat_dataset.json`](tests/fixtures/enterprise_threat_dataset.json) —
+150 records, hand-authored against real CVEs, MITRE ATT&CK techniques, and
+named incidents (Capital One 2019, SolarWinds Orion, 3CX, the `event-stream`
+npm compromise, among others), **100% ambiguous band by construction** —
+malicious and benign records are written as near-neighbor pairs sharing a
+tool and shape, so intent is the only tell. These numbers are not
+comparable to the 213-record table above; they are a separate run, on a
+separate, harder dataset.
+
+| Backend | p50 | p95 | ECE | AUC | Block | FPR | Gate |
+|---|---|---|---|---|---|---|---|
+| jev @500 ms deadline | 132.0 ms | 280.7 ms | 0.193 | **0.813** | 0.0% | 1.3% | **FAIL** |
+
+Latency is not the failure this time: p99 was 335.8 ms, comfortably inside
+the 500 ms escalated budget, with zero timeouts across 150 live calls. And
+unlike Laya's 0.497, an AUC of **0.813** is real discrimination — the best
+of any backend measured in this repository. It still fails the gate, for a
+third, different reason than either prior failure: at the shipped 0.85
+`block_threshold` it blocked **zero of 75 malicious records**, because
+Jev's `noul` probabilities are systematically compressed below that
+threshold even on records it is, in relative terms, ranking correctly — its
+calibration bins show malicious rates of 65–90% in score ranges as low as
+0.2–0.8, far under where `block_threshold` looks.
+
+A full threshold sweep, reconstructed from those same calibration bins (no
+new calls made), confirms no cutpoint rescues it: the best-separating point
+(Youden's J, threshold ≈0.2) reaches 82.7% block rate at 30.7% false
+positives — nowhere near the 98%-block/2%-FPR gate, and every other point
+on the curve trades one requirement away to improve the other.
+
+**Conclusion.** Still nothing promoted, and Laya and native Jev fail for
+different reasons. Laya got asked and showed no discrimination at all — AUC
+0.497, a modeling failure. Native Jev gets asked, discriminates
+meaningfully — AUC 0.813 — and still can't clear a safety gate on hard
+near-neighbor cases: a calibration and class-overlap failure, not an
+absence of signal. (A third path was tried and removed: routing Jev through
+OpenRouter's `jev-router` listing, a model-picker that chose a different
+underlying model per request — observed, in a manual test, routing one call
+to `stealth/space-bunny-alpha`. Every one of 195 calls exceeded the 500 ms
+escalated deadline, a pure latency failure that said nothing about Jev
+itself, so that path was pulled from the codebase rather than kept as dead
+weight.) The distinction between Laya's and Jev's failures matters for
+what's actually worth trying next: retuning `block_threshold`
+cannot fix this on its own, since no single number separates these
+distributions cleanly. What has real headroom is combining the two signals
+Jev already returns but `decide()` doesn't yet use together (`malice_probability`
+alongside its own `risk` score and `confidence`), a fitted per-backend
+calibration curve instead of trusting the raw `noul` scale, or a genuine
+third decision state — "escalate to review" — for a backend's ambiguous
+middle, since `Decision` today is a strict `ALLOW`/`BLOCK` binary with
+nowhere to put a call the evidence says is genuinely uncertain.
+
+Reproduce:
+
+```bash
+.venv/bin/python benchmarks/run_benchmarks.py \
+  --dataset tests/fixtures/enterprise_threat_dataset.json \
+  --backends jev --deadlines 500 \
+  --out benchmarks/results/enterprise-jev.json
+```
 
 ## Two bugs the benchmark found
 
@@ -366,9 +431,15 @@ acting on.
   should see the vendor's ~33 ms and a very different conclusion about
   whether a 100 ms deadline is reachable.
 
-* **Jev was never measured.** No credential was available. Its adapter is
-  built to the published contract and covered by tests, and no latency,
-  calibration, or gate number is claimed for it anywhere in this README.
+* **Jev's numbers are not comparable to the main table.** Native Jev ran
+  against `enterprise_threat_dataset.json` (150 records, 100% ambiguous),
+  not the 213-record set the main table uses — a different dataset with a
+  harder, near-neighbor-pair design, so its AUC and FPR are not directly
+  comparable to Laya's numbers above. An OpenRouter proxy path was also
+  tried and measured against the main 213-record set — it only demonstrated
+  that the proxy is too slow for the escalated deadline, said nothing about
+  Jev itself, and has since been removed from the codebase; see "Jev,
+  measured directly" for what that run showed before it was pulled.
 
 * **The dashboard's rendered output is unverified.** Static, header, and
   API-level checks passed and are recorded in `qa-report-2026-09-24.md`;
@@ -377,7 +448,12 @@ acting on.
 
 ## Roadmap
 
-- Measure Jev, and re-run the promotion decision with both backends present
+- A per-backend probability calibration curve (Platt/isotonic), fit from
+  measured bins — Jev's AUC 0.813 says the discriminative signal exists,
+  its threshold behavior says the raw `noul` scale doesn't map onto
+  `block_threshold` as-is
+- A genuine third `Decision` state — "escalate to review" — for a
+  backend's ambiguous score middle, instead of forcing binary allow/block
 - A fine-tuned Laya checkpoint on tool-call payloads — the adapter and
   question set need no changes
 - A Claude Code `PreToolUse` host adapter; `InterceptorPort` already exists
